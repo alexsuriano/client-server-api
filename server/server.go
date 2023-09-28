@@ -29,6 +29,10 @@ type Dollar struct {
 	} `json:"USDBRL"`
 }
 
+type Exchange struct {
+	Bid string `json:"bid"`
+}
+
 func main() {
 
 	http.HandleFunc("/cotacao", HandleDollarExchange)
@@ -77,6 +81,10 @@ func HandleDollarExchange(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
+	var exchange Exchange
+	exchange.Bid = dollar.Usdbrl.Bid
+
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dollar)
+	json.NewEncoder(w).Encode(exchange)
+
 }

@@ -58,7 +58,10 @@ func init() {
 
 func main() {
 	http.HandleFunc("/cotacao", HandleDollarExchange)
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func getDollarExchange(ctx context.Context, url string) (*DollarExchangeAPIResponse, error) {

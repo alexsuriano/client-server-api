@@ -64,7 +64,10 @@ func main() {
 	}
 }
 
-func getDollarExchange(ctx context.Context, url string) (*DollarExchangeAPIResponse, error) {
+func getDollarExchange(url string) (*DollarExchangeAPIResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -92,13 +95,7 @@ func getDollarExchange(ctx context.Context, url string) (*DollarExchangeAPIRespo
 }
 
 func HandleDollarExchange(w http.ResponseWriter, r *http.Request) {
-	ctxRequest, cancelRequest := context.WithTimeout(context.Background(), 200*time.Millisecond)
-	defer cancelRequest()
-
-	ctxDBWrite, cancelDBWrite := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancelDBWrite()
-
-	dollar, err := getDollarExchange(ctxRequest, urlDollarExchange)
+	dollar, err := getDollarExchange(urlDollarExchange)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Solicitação de cotação indiponível"))
@@ -111,7 +108,7 @@ func HandleDollarExchange(w http.ResponseWriter, r *http.Request) {
 		}
 		defer db.Close()
 
-		err = InsertDollarQuote(ctxDBWrite, db, dollar)
+		err = InsertDollarExchange(db, dollar)
 		if err != nil {
 			log.Println(err)
 		}
@@ -178,17 +175,21 @@ func CreateTable(db *sql.DB) error {
 	return nil
 }
 
-func InsertDollarQuote(ctx context.Context, db *sql.DB, dollar *DollarExchangeAPIResponse) error {
+func InsertDollarExchange(db *sql.DB, dollar *DollarExchangeAPIResponse) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
 	query := `insert into dollar_exchanges(code, code_in, name, high, low, var_bid, pct_change, 
 		bid, ask, timestamp, create_date) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	stmt, err := db.Prepare(query)
+	stmt, err := db.PrepareContext(ctx, query)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(
+	_, err = stmt.ExecContext(
+		ctx,
 		dollar.Usdbrl.Code,
 		dollar.Usdbrl.Codein,
 		dollar.Usdbrl.Name,

@@ -1,4 +1,4 @@
-## Atividade Client-Server-API
+## Desafio Client-Server-API
 
 ### Objetivo:
 Neste desafio vamos aplicar o que aprendemos sobre webserver http, contextos,
